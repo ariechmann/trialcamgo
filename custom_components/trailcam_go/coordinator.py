@@ -19,6 +19,7 @@ from .const import (
     API_DOWNLOAD_FILE,
     BLE_SERVICE_UUID,
     BLE_CHAR_UUID,
+    BLE_NOTIFY_UUID,
     BLE_WAKE_CMD,
     BLE_WAKE_DELAY,
 )
@@ -42,6 +43,7 @@ class TrailCamGoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._latest_thumbnail: bytes | None = None
         self._latest_fid: str | None = None
         self._session: aiohttp.ClientSession | None = None
+        self.ble_battery: int | None = None  # raw value from NOTIFY char
 
         super().__init__(
             hass,
@@ -78,9 +80,43 @@ class TrailCamGoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         try:
             _LOGGER.debug("Connecting to BLE device %s", self.ble_mac)
+            notify_event = asyncio.Event()
+            notify_data: list[bytearray] = []
+
+            def _handle_notify(_, data: bytearray) -> None:
+                notify_data.append(data)
+                notify_event.set()
+
             async with BleakClient(self.ble_mac, timeout=15.0) as client:
+                # Subscribe to NOTIFY char to receive battery/status response
+                try:
+                    await client.start_notify(BLE_NOTIFY_UUID, _handle_notify)
+                except Exception:
+                    pass  # NOTIFY is optional
+
                 await client.write_gatt_char(BLE_CHAR_UUID, BLE_WAKE_CMD, response=False)
                 _LOGGER.info("BLE wake command sent to %s", self.ble_mac)
+
+                # Wait briefly for notify response
+                try:
+                    await asyncio.wait_for(notify_event.wait(), timeout=3.0)
+                except asyncio.TimeoutError:
+                    pass
+
+            # Parse battery from JSON notify payload, e.g. {"battery":"625"}
+            if notify_data:
+                try:
+                    import json
+                    raw = b"".join(notify_data).decode("utf-8", errors="ignore")
+                    # The payload may be truncated – try to extract a number
+                    payload = json.loads(raw) if raw.startswith("{") else {}
+                    for key in ("battery", "voltage", "bat", "v"):
+                        if key in payload:
+                            self.ble_battery = int(payload[key])
+                            _LOGGER.debug("BLE battery value: %s", self.ble_battery)
+                            break
+                except Exception as exc:
+                    _LOGGER.debug("Could not parse BLE notify payload: %s", exc)
 
             # Wait for WiFi AP to come up before polling
             await asyncio.sleep(BLE_WAKE_DELAY)

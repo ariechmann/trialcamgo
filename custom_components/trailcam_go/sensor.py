@@ -1,7 +1,7 @@
 """Sensor platform for TrailCam Go."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
@@ -24,6 +24,7 @@ async def async_setup_entry(
             TrailCamGoVideoCountSensor(coordinator, entry),
             TrailCamGoOnlineSensor(coordinator, entry),
             TrailCamGoLastSyncSensor(coordinator, entry),
+            TrailCamGoBatterySensor(coordinator, entry),
         ]
     )
 
@@ -113,3 +114,36 @@ class TrailCamGoLastSyncSensor(_TrailCamGoSensorBase):
             return datetime.fromisoformat(raw)
         except ValueError:
             return None
+
+
+class TrailCamGoBatterySensor(_TrailCamGoSensorBase):
+    """Battery value from BLE NOTIFY response. Updated on every wake_wifi call."""
+
+    _attr_name = "Battery"
+    _attr_icon = "mdi:battery"
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "%"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_battery"
+
+    @property
+    def native_value(self):
+        raw = self.coordinator.ble_battery
+        if raw is None:
+            return None
+        # Raw value "625" likely means 6.25V on a ~8.4V max pack → map to %
+        # Adjust min/max once you see the actual range from your camera
+        # Common range: ~550 (empty) to ~840 (full) for 2S Li-ion
+        try:
+            v = raw / 100.0  # e.g. 625 → 6.25V
+            pct = round((v - 5.5) / (8.4 - 5.5) * 100)
+            return max(0, min(100, pct))
+        except Exception:
+            return None
+
+    @property
+    def extra_state_attributes(self):
+        return {"raw_value": self.coordinator.ble_battery}
