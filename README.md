@@ -16,7 +16,7 @@ Die Kamera kommuniziert in zwei Schritten:
 ## Installation (HACS)
 
 1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories
-2. URL: `https://github.com/yourusername/ha-trailcam-go` | Kategorie: Integration
+2. URL: `https://github.com/ariechmann/ha-trailcam-go` | Kategorie: Integration
 3. Installieren → HA neu starten
 4. Einstellungen → Geräte & Dienste → + Integration → **TrailCam Go**
 
