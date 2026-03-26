@@ -1,0 +1,12 @@
+{
+  "domain": "trailcam_go",
+  "name": "TrailCam Go",
+  "documentation": "https://github.com/yourusername/ha-trailcam-go",
+  "issue_tracker": "https://github.com/yourusername/ha-trailcam-go/issues",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "version": "1.0.0"
+}

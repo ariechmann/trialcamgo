@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "TrailCam Go einrichten",
+        "description": "Stelle sicher, dass dein HA-Host mit dem WLAN-AP der Kamera verbunden ist (SSID: 'Trail Cam Pro ****', PW: 12345678) bevor du auf Weiter klickst.\n\nDie BLE-MAC-Adresse ist optional – sie wird benötigt, um die Kamera per Service aus HA heraus aufzuwecken.",
+        "data": {
+          "name": "Name",
+          "camera_ip": "Kamera-IP-Adresse",
+          "ble_mac": "BLE MAC-Adresse (optional)",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "ignore_connectivity": "Trotzdem speichern (Kamera offline)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kamera nicht erreichbar unter der angegebenen IP. Bitte überprüfe die WLAN-Verbindung."
+    },
+    "abort": {
+      "already_configured": "Diese Kamera ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "data": {
+          "ble_mac": "BLE MAC-Adresse (optional)",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)"
+        }
+      }
+    }
+  },
+  "services": {
+    "wake_wifi": {
+      "name": "WiFi aufwecken",
+      "description": "Sendet den BLE-Befehl 'BT_Key_On' an die Kamera, um ihren WLAN-AP zu aktivieren."
+    },
+    "sync": {
+      "name": "Synchronisieren",
+      "description": "Erzwingt eine sofortige Datenabfrage von der Kamera."
+    },
+    "download_latest": {
+      "name": "Letztes Foto herunterladen",
+      "description": "Lädt das neueste Foto von der Kamera und speichert es unter /config/www/trailcam_go/."
+    }
+  }
+}
